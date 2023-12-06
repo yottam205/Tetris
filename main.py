@@ -5,6 +5,7 @@ import pygame
 import layout
 import random
 import time
+import copy
 
 pygame.init()
 
@@ -242,7 +243,142 @@ def show_game_over(surface):
     surface.blit(game_over_label, (board_start_x + (layout.BOARD_W * CELL_SIZE // 2) - (game_over_label.get_width() // 2), board_start_y + (layout.BOARD_H * CELL_SIZE // 2) - (game_over_label.get_height() // 2)))
     pygame.display.update()
     pygame.time.wait(2000)  # Wait for 2 seconds before showing restart menu
- 
+
+def check_game_over(tetromino, board):
+    return is_collision(tetromino, board)
+
+def handle_game_over():
+    show_game_over(window)
+    window.fill((0, 0, 0))  # Clear the screen
+    action = restart_menu(window, True)  # True for game over scenario
+    if action == "restart":
+        main_game_loop()  # Restart the game
+    else:
+        return "quit"
+    
+class HeuristicAlgorithm:
+    def __init__(self):
+        self.weights = {
+            "lines_cleared": 200,  # Increased reward for clearing lines
+            "holes": -100,         # Increased penalty for holes
+            "bumpiness": -50,      # Adjusted penalty for bumpiness
+            "height": -100,        # Significantly increased penalty for height
+            "t_spin": 200          # Reward for T-spins, if implemented
+        }
+    def calculate_score(self, board, lines_cleared, is_t_spin=False):
+        col_heights = [max((i for i, cell in enumerate(col) if cell != 0), default=0) for col in zip(*board)]
+        total_height = sum(col_heights)
+        bumpiness = sum(abs(col_heights[i] - col_heights[i + 1]) for i in range(len(col_heights) - 1))
+        holes = sum(1 for i in range(1, len(board)) for j in range(len(board[0])) if board[i][j] == 0 and board[i-1][j] != 0)
+
+        score = (lines_cleared * self.weights["lines_cleared"] + 
+                total_height * self.weights["height"] + 
+                holes * self.weights["holes"] + 
+                bumpiness * self.weights["bumpiness"])
+
+        if is_t_spin:
+            score += self.weights["t_spin"]
+
+        return score
+
+
+    def possible_moves(self, tetromino, board):
+        moves = []
+        number_of_rotations = len(tetromino.all_rotations)
+
+        for rotation in range(number_of_rotations):
+            tetromino.rotation = rotation
+            tetromino.shape = tetromino.all_rotations[rotation]
+            min_x = -min(j for i, row in enumerate(tetromino.shape) for j, cell in enumerate(row) if cell != 0)
+            max_x = layout.BOARD_W - max(j for i, row in enumerate(tetromino.shape) for j, cell in enumerate(row) if cell != 0)
+
+            for x in range(min_x, max_x):
+                tetromino.x = x
+                if valid_space(tetromino, board):
+                    moves.append((rotation, x))
+
+        return moves
+
+    def simulate_move(self, tetromino, board, move):
+        simulated_tetromino = copy.deepcopy(tetromino)
+        for _ in range(move[0]):
+            simulated_tetromino.rotate()
+        simulated_tetromino.x = move[1]
+
+        while not is_collision(simulated_tetromino, board):
+            simulated_tetromino.y += 1
+        simulated_tetromino.y -= 1
+
+        simulated_board = copy.deepcopy(board)
+        lock_tetromino(simulated_tetromino, simulated_board)
+
+        return simulated_board
+
+    def find_best_move(self, current_tetromino, next_tetromino, board):
+        best_move = None
+        best_score = float('-inf')
+
+        for move in self.possible_moves(current_tetromino, board):
+            simulated_board = self.simulate_move(current_tetromino, board, move)
+            is_t_spin = self.detect_t_spin(current_tetromino, simulated_board)
+
+            # Introduce lookahead by considering the next tetromino
+            for next_move in self.possible_moves(next_tetromino, simulated_board):
+                future_board = self.simulate_move(next_tetromino, simulated_board, next_move)
+                lines_cleared = self.calculate_lines_cleared(simulated_board, future_board)
+                score = self.calculate_score(future_board, lines_cleared, is_t_spin)
+
+                if score > best_score:
+                    best_score = score
+                    best_move = move
+
+        return best_move
+    
+    def calculate_bumpiness(board):
+        heights = [max((i for i, cell in enumerate(row) if cell != 0), default=0) for row in zip(*board)]
+        return sum(abs(heights[i] - heights[i+1]) for i in range(len(heights) - 1))
+    
+    def calculate_lines_cleared(self, current_board, future_board):
+        lines_cleared = 0
+
+        for i in range(len(current_board)):
+            current_row = current_board[i]
+            future_row = future_board[i]
+
+            # Check if the row was full in the current board and empty in the future board
+            if all(cell != 0 for cell in current_row) and all(cell == 0 for cell in future_row):
+                lines_cleared += 1
+
+        return lines_cleared
+
+    
+    def detect_t_spin(self, tetromino, board):
+        T_TETROMINO_INDEX = 2 
+        if tetromino.shape_index != T_TETROMINO_INDEX:  # Replace with the index of T-Tetromino in your SHAPES
+            return False
+
+        x, y = tetromino.x, tetromino.y
+        shape = tetromino.shape
+
+        # Coordinates of the 3x3 grid around the T-Tetromino's center
+        surrounding_blocks = [
+            (x - 1, y - 1), (x, y - 1), (x + 1, y - 1),
+            (x - 1, y),                 (x + 1, y),
+            (x - 1, y + 1), (x, y + 1), (x + 1, y + 1)
+        ]
+
+        filled_corners = 0
+        for bx, by in surrounding_blocks:
+            if bx < 0 or by < 0 or bx >= layout.BOARD_W or by >= layout.BOARD_H:
+                filled_corners += 1  # Count out-of-bounds as filled
+            elif board[by][bx] != 0:
+                filled_corners += 1
+
+        # Check if three of the four corner blocks are filled
+        return filled_corners >= 3
+
+
+heuristic = HeuristicAlgorithm()
 
 def main_game_loop():
     game_board = [[0 for _ in range(layout.BOARD_W)] for _ in range(layout.BOARD_H)]
@@ -259,6 +395,8 @@ def main_game_loop():
     score_per_tetromino = 10 
     is_paused = False
     pause_start_time = None
+    automatic_play = False 
+    
 
     while running:
         fall_time += clock.get_rawtime()
@@ -320,6 +458,9 @@ def main_game_loop():
                     current_tetromino.rotate()
                     if not valid_space(current_tetromino, game_board):
                         current_tetromino.rotate()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_a:
+                        automatic_play = not automatic_play
 
             elif event.type == pygame.KEYUP:
                 if event.key in [pygame.K_DOWN, pygame.K_SPACE]:
@@ -342,10 +483,36 @@ def main_game_loop():
                         window.fill((0, 0, 0))  # Clear the screen
                         action = restart_menu(window, True)  # True for game over scenario
                         if action == "restart":
-                            main_game_loop()
-                        else:
+                            main_game_loop()  # Restart the game
                             return
-                    
+                        else:
+                            break
+                    if check_game_over(next_tetromino, game_board):
+                        result = handle_game_over()
+                        if result == "quit":
+                            break
+
+         # Automatic play logic
+        if automatic_play:
+            best_move = heuristic.find_best_move(current_tetromino, next_tetromino, game_board)
+            if best_move:
+                # Apply the best move
+                current_tetromino.rotation = best_move[0]
+                current_tetromino.x = best_move[1]
+                # Drop the tetromino immediately to the bottom
+                while not is_collision(current_tetromino, game_board):
+                    current_tetromino.y += 1
+                current_tetromino.y -= 1  # Adjust position after collision
+                lock_tetromino(current_tetromino, game_board)
+                # Spawn a new tetromino and check for game over
+                current_tetromino = next_tetromino
+                next_tetromino = spawn_new_tetromino()
+                if is_collision(next_tetromino, game_board):
+                    show_game_over(window)
+                if check_game_over(next_tetromino, game_board):
+                    result = handle_game_over()
+                    if result == "quit":
+                        break
 
         window.fill((0, 0, 0))
         draw_grid(window, game_board)

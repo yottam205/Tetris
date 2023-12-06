@@ -1,5 +1,4 @@
-# Game look setting will be coded here
-# board looks, tetrominos etc
+
 
 BOARD_W, BOARD_H = 10, 20
 
