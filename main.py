@@ -205,9 +205,13 @@ def draw_pause_button(surface, is_paused):
     surface.blit(text_surface, (button_x + (button_width - text_surface.get_width()) / 2, 
                                 button_y + (button_height - text_surface.get_height()) / 2))
 
-def restart_menu(surface):
+def restart_menu(surface, is_game_over):
     font = pygame.font.SysFont('comicsans', 30)
-    text = font.render("Press R to Restart or Q to Quit", True, (255, 255, 255))
+    if is_game_over:
+        text = font.render("Press R to Restart or Q to Quit", True, (255, 255, 255))
+    else:
+        text = font.render("Press R to Restart or Q to Quit or P to Play", True, (255, 255, 255))
+    
     text_rect = text.get_rect(center=(WINDOW_W / 2, WINDOW_H / 2))
     surface.blit(text, text_rect)
     pygame.display.update()
@@ -215,12 +219,23 @@ def restart_menu(surface):
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return False
+                return "quit"
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:  # Restart
-                    return True
-                elif event.key == pygame.K_q:  # Quit
-                    return False
+                if event.key == pygame.K_r:
+                    return "restart"
+                elif event.key == pygame.K_q:
+                    return "quit"
+                elif not is_game_over and event.key == pygame.K_p:
+                    return "play"
+
+    return "quit"
+
+def create_semi_transparent_surface(width, height, alpha=128):
+    # Create a new surface with the specified width, height, and alpha transparency
+    transparent_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+    transparent_surface.fill((0, 0, 0, alpha))  # Fill with semi-transparent black
+    return transparent_surface
+
 
 def show_game_over(surface):
     game_over_label = font.render('GAME OVER', 1, (255, 0, 0))
@@ -233,6 +248,7 @@ def main_game_loop():
     game_board = [[0 for _ in range(layout.BOARD_W)] for _ in range(layout.BOARD_H)]
     current_tetromino = spawn_new_tetromino()
     next_tetromino = spawn_new_tetromino()
+    semi_transparent_overlay = create_semi_transparent_surface(WINDOW_W, WINDOW_H)
     clock = pygame.time.Clock()
     fall_speed = 0.10
     lines_cleared = 0
@@ -242,6 +258,7 @@ def main_game_loop():
     score = 0
     score_per_tetromino = 10 
     is_paused = False
+    pause_start_time = None
 
     while running:
         fall_time += clock.get_rawtime()
@@ -253,7 +270,39 @@ def main_game_loop():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 if button_x <= mouse_x <= button_x + button_width and button_y <= mouse_y <= button_y + button_height:
-                    is_paused = not is_paused
+                    if not is_paused:
+                        # Entering pause state
+                        is_paused = True
+                        pause_start_time = time.time()  # Record the start time of the pause
+                        window.blit(semi_transparent_overlay, (0, 0))  # Apply semi-transparent overlay
+                        action = restart_menu(window, False)  # False for pause scenario
+                        if action == "restart":
+                            main_game_loop()
+                            return
+                        elif action == "play":
+                            # Exiting pause state
+                            is_paused = False
+                            if pause_start_time is not None:
+                                pause_duration = time.time() - pause_start_time
+                                start_time += pause_duration  # Adjust start_time by pause duration
+                            pause_start_time = None  # Reset pause_start_time
+                        elif action == "quit":
+                            return
+                    else:
+                        # Handle already paused state
+                        action = restart_menu(window, False)  # False for pause scenario
+                        if action == "restart":
+                            main_game_loop()
+                            return
+                        elif action == "play":
+                            is_paused = False
+                            if pause_start_time is not None:
+                                pause_duration = time.time() - pause_start_time
+                                start_time += pause_duration  # Adjust start_time by pause duration
+                            pause_start_time = None  # Reset pause_start_time
+                        elif action == "quit":
+                            return
+
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     current_tetromino.x -= 1
@@ -290,12 +339,13 @@ def main_game_loop():
                     next_tetromino = spawn_new_tetromino()
                     if is_collision(next_tetromino, game_board):
                         show_game_over(window)
-                        window.fill((0, 0, 0))  # Clear the screen before showing restart menu
-                        restart = restart_menu(window)
-                        if restart:
+                        window.fill((0, 0, 0))  # Clear the screen
+                        action = restart_menu(window, True)  # True for game over scenario
+                        if action == "restart":
                             main_game_loop()
                         else:
-                            return   # Break out of the loop to show game over screen
+                            return
+                    
 
         window.fill((0, 0, 0))
         draw_grid(window, game_board)
