@@ -205,92 +205,119 @@ def draw_pause_button(surface, is_paused):
     surface.blit(text_surface, (button_x + (button_width - text_surface.get_width()) / 2, 
                                 button_y + (button_height - text_surface.get_height()) / 2))
 
+def restart_menu(surface):
+    font = pygame.font.SysFont('comicsans', 30)
+    text = font.render("Press R to Restart or Q to Quit", True, (255, 255, 255))
+    text_rect = text.get_rect(center=(WINDOW_W / 2, WINDOW_H / 2))
+    surface.blit(text, text_rect)
+    pygame.display.update()
 
-# Game Over Screen
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:  # Restart
+                    return True
+                elif event.key == pygame.K_q:  # Quit
+                    return False
+
 def show_game_over(surface):
     game_over_label = font.render('GAME OVER', 1, (255, 0, 0))
     surface.blit(game_over_label, (board_start_x + (layout.BOARD_W * CELL_SIZE // 2) - (game_over_label.get_width() // 2), board_start_y + (layout.BOARD_H * CELL_SIZE // 2) - (game_over_label.get_height() // 2)))
     pygame.display.update()
-    pygame.time.wait(3000) 
+    pygame.time.wait(2000)  # Wait for 2 seconds before showing restart menu
+ 
 
-game_board = [[0 for _ in range(layout.BOARD_W)] for _ in range(layout.BOARD_H)]
-current_tetromino = spawn_new_tetromino()
-next_tetromino = spawn_new_tetromino()
-clock = pygame.time.Clock()
-fall_speed = 0.10
-lines_cleared = 0
-fall_time = 0
-running = True
-start_time = time.time()  # Start time for the game
-score = 0
-score_per_tetromino = 10 
-is_paused = False
+def main_game_loop():
+    game_board = [[0 for _ in range(layout.BOARD_W)] for _ in range(layout.BOARD_H)]
+    current_tetromino = spawn_new_tetromino()
+    next_tetromino = spawn_new_tetromino()
+    clock = pygame.time.Clock()
+    fall_speed = 0.10
+    lines_cleared = 0
+    fall_time = 0
+    running = True
+    start_time = time.time()  # Start time for the game
+    score = 0
+    score_per_tetromino = 10 
+    is_paused = False
 
+    while running:
+        fall_time += clock.get_rawtime()
+        clock.tick()
 
-while running:
-    fall_time += clock.get_rawtime()
-    clock.tick()
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            if button_x <= mouse_x <= button_x + button_width and button_y <= mouse_y <= button_y + button_height:
-                is_paused = not is_paused
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                current_tetromino.x -= 1
-                if not valid_space(current_tetromino, game_board):
-                    current_tetromino.x += 1
-            elif event.key == pygame.K_RIGHT:
-                current_tetromino.x += 1
-                if not valid_space(current_tetromino, game_board):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return  # Exit the loop and the function to quit
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                if button_x <= mouse_x <= button_x + button_width and button_y <= mouse_y <= button_y + button_height:
+                    is_paused = not is_paused
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
                     current_tetromino.x -= 1
-            elif event.key == pygame.K_DOWN:
-                fall_speed = 0.03
-            elif event.key == pygame.K_SPACE:
-                fall_speed = 0.001
-            elif event.key == pygame.K_UP:
-                current_tetromino.rotate()
-                if not valid_space(current_tetromino, game_board):
-                    current_tetromino.rotate()  # Rotate back to old state
+                    if not valid_space(current_tetromino, game_board):
+                        current_tetromino.x += 1
+                elif event.key == pygame.K_RIGHT:
+                    current_tetromino.x += 1
+                    if not valid_space(current_tetromino, game_board):
+                        current_tetromino.x -= 1
+                elif event.key == pygame.K_DOWN:
+                    fall_speed = 0.03
+                elif event.key == pygame.K_SPACE:
+                    fall_speed = 0.001
+                elif event.key == pygame.K_UP:
+                    current_tetromino.rotate()
+                    if not valid_space(current_tetromino, game_board):
+                        current_tetromino.rotate()
 
-        elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_DOWN or pygame.K_SPACE:
-                fall_speed = 0.10
+            elif event.type == pygame.KEYUP:
+                if event.key in [pygame.K_DOWN, pygame.K_SPACE]:
+                    fall_speed = 0.10
 
-    if not is_paused:
-        if fall_time/1000 > fall_speed:
-            fall_time = 0
-            current_tetromino.y += 1
-            if not valid_space(current_tetromino, game_board) or is_collision(current_tetromino, game_board):
-                current_tetromino.y -= 1
-                lock_tetromino(current_tetromino, game_board)
-                lines_cleared_this_turn, game_board = check_lines(game_board)  # Adjusted to update the board
-                lines_cleared += lines_cleared_this_turn
-                score += score_per_tetromino
-                current_tetromino = next_tetromino
-                next_tetromino = spawn_new_tetromino()
-                if is_collision(next_tetromino, game_board):
-                    show_game_over(window)
-                    running = False
-        
+        if not is_paused:
+            if fall_time/1000 > fall_speed:
+                fall_time = 0
+                current_tetromino.y += 1
+                if not valid_space(current_tetromino, game_board) or is_collision(current_tetromino, game_board):
+                    current_tetromino.y -= 1
+                    lock_tetromino(current_tetromino, game_board)
+                    lines_cleared_this_turn, game_board = check_lines(game_board)
+                    lines_cleared += lines_cleared_this_turn
+                    score += score_per_tetromino
+                    current_tetromino = next_tetromino
+                    next_tetromino = spawn_new_tetromino()
+                    if is_collision(next_tetromino, game_board):
+                        show_game_over(window)
+                        window.fill((0, 0, 0))  # Clear the screen before showing restart menu
+                        restart = restart_menu(window)
+                        if restart:
+                            main_game_loop()
+                        else:
+                            return   # Break out of the loop to show game over screen
 
-    window.fill((0, 0, 0))
-    draw_grid(window, game_board)
-    draw_shadow_tetromino(window, current_tetromino, game_board)
-    draw_tetromino(window, current_tetromino)
-    draw_next_shape(next_tetromino, window)
-    draw_info(window, score, start_time, lines_cleared)
-    draw_pause_button(window, is_paused)  # Draw the pause/play button
-    pygame.display.update()
+        window.fill((0, 0, 0))
+        draw_grid(window, game_board)
+        draw_shadow_tetromino(window, current_tetromino, game_board)
+        draw_tetromino(window, current_tetromino)
+        draw_next_shape(next_tetromino, window)
+        draw_info(window, score, start_time, lines_cleared)
+        draw_pause_button(window, is_paused)
+        pygame.display.update()
 
-    if lines_cleared >= 10:
-        fall_speed *= 0.9
-        lines_cleared -= 10
+        if lines_cleared >= 10:
+            fall_speed *= 0.9
+            lines_cleared -= 10
 
-    clock.tick(60)
+        clock.tick(60)
 
-show_game_over(window)
+    # Ask the player if they want to restart
+    restart = restart_menu(window)
+    if restart:
+        main_game_loop()
+
+
+# Call the main game loop
+main_game_loop()
 pygame.quit()
