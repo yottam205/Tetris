@@ -251,18 +251,15 @@ def handle_game_over():
     show_game_over(window)
     window.fill((0, 0, 0))  # Clear the screen
     action = restart_menu(window, True)  # True for game over scenario
-    if action == "restart":
-        main_game_loop()  # Restart the game
-    else:
-        return "quit"
+    return action
     
 class HeuristicAlgorithm:
     def __init__(self):
         self.weights = {
-            "lines_cleared": 200,  # Increased reward for clearing lines
-            "holes": -100,         # Increased penalty for holes
-            "bumpiness": -50,      # Adjusted penalty for bumpiness
-            "height": -100,        # Significantly increased penalty for height
+            "lines_cleared": 500,  # Increased reward for clearing lines
+            "holes": -250,         # Increased penalty for holes
+            "bumpiness": -25,      # Adjusted penalty for bumpiness
+            "height": 150,        # Significantly increased penalty for height
             "t_spin": 200          # Reward for T-spins, if implemented
         }
     def calculate_score(self, board, lines_cleared, is_t_spin=False):
@@ -380,6 +377,12 @@ class HeuristicAlgorithm:
 
 heuristic = HeuristicAlgorithm()
 
+def run_game():
+    while True:
+        action = main_game_loop()
+        if action == "quit":
+            break
+
 def main_game_loop():
     game_board = [[0 for _ in range(layout.BOARD_W)] for _ in range(layout.BOARD_H)]
     current_tetromino = spawn_new_tetromino()
@@ -430,16 +433,14 @@ def main_game_loop():
                         # Handle already paused state
                         action = restart_menu(window, False)  # False for pause scenario
                         if action == "restart":
-                            main_game_loop()
-                            return
+                            return  # Exit the function to restart the game
                         elif action == "play":
                             is_paused = False
-                            if pause_start_time is not None:
-                                pause_duration = time.time() - pause_start_time
-                                start_time += pause_duration  # Adjust start_time by pause duration
+                            pause_duration = time.time() - pause_start_time
+                            start_time += pause_duration  # Adjust start_time by pause duration
                             pause_start_time = None  # Reset pause_start_time
                         elif action == "quit":
-                            return
+                            return 
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
@@ -480,17 +481,8 @@ def main_game_loop():
                     next_tetromino = spawn_new_tetromino()
                     if is_collision(next_tetromino, game_board):
                         show_game_over(window)
-                        window.fill((0, 0, 0))  # Clear the screen
-                        action = restart_menu(window, True)  # True for game over scenario
-                        if action == "restart":
-                            main_game_loop()  # Restart the game
-                            return
-                        else:
-                            break
-                    if check_game_over(next_tetromino, game_board):
-                        result = handle_game_over()
-                        if result == "quit":
-                            break
+                        return handle_game_over() 
+                   
 
          # Automatic play logic
         if automatic_play:
@@ -499,20 +491,29 @@ def main_game_loop():
                 # Apply the best move
                 current_tetromino.rotation = best_move[0]
                 current_tetromino.x = best_move[1]
+
                 # Drop the tetromino immediately to the bottom
                 while not is_collision(current_tetromino, game_board):
                     current_tetromino.y += 1
                 current_tetromino.y -= 1  # Adjust position after collision
+
                 lock_tetromino(current_tetromino, game_board)
+                score += score_per_tetromino  # Increase score for each locked tetromino by algorithm
+
+                # Check and handle lines cleared
+                lines_cleared_this_turn, game_board = check_lines(game_board)
+                lines_cleared += lines_cleared_this_turn
+
                 # Spawn a new tetromino and check for game over
                 current_tetromino = next_tetromino
                 next_tetromino = spawn_new_tetromino()
                 if is_collision(next_tetromino, game_board):
-                    show_game_over(window)
-                if check_game_over(next_tetromino, game_board):
                     result = handle_game_over()
                     if result == "quit":
-                        break
+                        return "quit"  # Exit the game
+                    elif result == "restart":
+                        return 
+
 
         window.fill((0, 0, 0))
         draw_grid(window, game_board)
@@ -530,11 +531,14 @@ def main_game_loop():
         clock.tick(60)
 
     # Ask the player if they want to restart
-    restart = restart_menu(window)
-    if restart:
-        main_game_loop()
+    restart = restart_menu(window, False)
+    if restart == "restart":
+        return  # Exit the function to restart the game
+    elif restart == "quit":
+        return  
 
 
-# Call the main game loop
-main_game_loop()
-pygame.quit()
+if __name__ == "__main__":
+    run_game()
+    pygame.quit()
+
