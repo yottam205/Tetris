@@ -3,14 +3,14 @@
 BOARD_W, BOARD_H = 10, 20
 
 COLORS = [
-    (0, 0, 0),      # Empty spaces
-    (255, 0, 0),    # Red for Shape 1
-    (0, 255, 0),    # Green for Shape 2
-    (0, 0, 255),    # Blue for Shape 3
-    (255, 255, 0),  # Yellow for Shape 4
-    (255, 165, 0),  # Orange for Shape 5
-    (128, 0, 128),  # Purple for Shape 6
-    (0, 255, 255)   # Cyan for Shape 7
+    (34, 102, 141),
+    (255, 173, 96),  # Peach
+    (255, 92, 87),   # Coral Red
+    (134, 227, 206), # Mint Green
+    (253, 253, 150), # Light Yellow
+    (255, 132, 124), # Lighter Coral Red
+    (114, 207, 186), # Darker Mint Green
+    (255, 183, 106)  # Darker Peach
 ]
 
 SHAPES = [

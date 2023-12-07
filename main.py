@@ -1,6 +1,3 @@
-# main game file where game loop is
-# heuristic-based algorithm for self played Tetris game
-
 import pygame
 import layout
 import random
@@ -33,15 +30,15 @@ button_height = 40
 
 def draw_info(surface, score, start_time, lines):
     current_time = int(time.time() - start_time)
-    pygame.draw.rect(surface, (0, 0, 0), (info_x, 0, WINDOW_W - info_x, WINDOW_H))
+    pygame.draw.rect(surface, (255, 253, 232), (info_x, 0, WINDOW_W - info_x, WINDOW_H))
     # Time
-    time_label = font.render(f'Time: {current_time}', 1, (255, 255, 255))
+    time_label = font.render(f'Time: {current_time}', 1, (38, 70, 83))
     surface.blit(time_label, (info_x, time_y))
     # Score
-    score_label = font.render(f'Score: {score}', 1, (255, 255, 255))
+    score_label = font.render(f'Score: {score}', 1, (38, 70, 83))
     surface.blit(score_label, (info_x, score_y))
     # Lines cleared
-    lines_label = font.render(f'Lines: {lines}', 1, (255, 255, 255))
+    lines_label = font.render(f'Lines: {lines}', 1, (38, 70, 83))
     surface.blit(lines_label, (info_x, lines_y))
 
 def draw_grid(surface, grid):
@@ -51,7 +48,7 @@ def draw_grid(surface, grid):
             color = layout.COLORS[color_index]
             pygame.draw.rect(surface, color,
                              (board_start_x + j * CELL_SIZE, board_start_y + i * CELL_SIZE, CELL_SIZE, CELL_SIZE), 0)                    
-            pygame.draw.rect(surface, (128, 128, 128), 
+            pygame.draw.rect(surface, (249, 249, 224), 
                              (board_start_x + j * CELL_SIZE, board_start_y + i * CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)
 
 
@@ -418,29 +415,29 @@ def main_game_loop():
                         window.blit(semi_transparent_overlay, (0, 0))  # Apply semi-transparent overlay
                         action = restart_menu(window, False)  # False for pause scenario
                         if action == "restart":
-                            main_game_loop()
-                            return
-                        elif action == "play":
-                            # Exiting pause state
-                            is_paused = False
-                            if pause_start_time is not None:
-                                pause_duration = time.time() - pause_start_time
-                                start_time += pause_duration  # Adjust start_time by pause duration
-                            pause_start_time = None  # Reset pause_start_time
-                        elif action == "quit":
-                            return
-                    else:
-                        # Handle already paused state
-                        action = restart_menu(window, False)  # False for pause scenario
-                        if action == "restart":
-                            return  # Exit the function to restart the game
+                            return "restart"
                         elif action == "play":
                             is_paused = False
                             pause_duration = time.time() - pause_start_time
                             start_time += pause_duration  # Adjust start_time by pause duration
-                            pause_start_time = None  # Reset pause_start_time
+                            pause_start_time = None
                         elif action == "quit":
-                            return 
+                            return "quit"
+                    else:
+                        if not restart_menu_active:
+                            action = restart_menu(window, False)
+                            restart_menu_active = True  # Set to True as the menu is now active
+
+                            if action == "restart":
+                                return "restart"  # Exit the function to restart the game
+                            elif action == "play":
+                                is_paused = False
+                                pause_duration = time.time() - pause_start_time
+                                start_time += pause_duration  # Adjust start_time by pause duration
+                                pause_start_time = None  # Reset pause_start_time
+                                restart_menu_active = False  # Reset the menu state as it's no longer active
+                            elif action == "quit":
+                                return "quit"
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
@@ -515,7 +512,7 @@ def main_game_loop():
                         return 
 
 
-        window.fill((0, 0, 0))
+        window.fill((253, 253, 150))
         draw_grid(window, game_board)
         draw_shadow_tetromino(window, current_tetromino, game_board)
         draw_tetromino(window, current_tetromino)
