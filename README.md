@@ -21,23 +21,18 @@
 ----------------------------
 # Requirements
 ----------------------------
-#### To play the game, you'll need:
+To play the game, you'll need:
 
-* Python 3.x
-* Pygame
-* Pytest
-
+Python 3.x
+Pygame
 ----------------------------
 # Installation
 ----------------------------
-
-#### Install Python: Ensure Python 3.x is installed on your system.
-#### Install Pygame:
-* bash
-* Copy code
-* pip install pygame
-* pip install pytest
-
+Install Python: Ensure Python 3.x is installed on your system.
+Install Pygame:
+bash
+Copy code
+pip install pygame
 ----------------------------
 
 #### Please make sure you import these packages as well
@@ -67,5 +62,4 @@
 ----------------------------
 #### Contributions to the game are welcome! Feel free to fork the repository, make your changes, and submit a pull request.
 ----------------------------
-
-## Please note that this is the first version of the game and there are a few updates needs to be done for the algorithm to work better
+# Please note that this is the first version of the game and there are a few updates needs to be done for the algorithm to work better
