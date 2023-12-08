@@ -23,16 +23,16 @@
 ----------------------------
 To play the game, you'll need:
 
-Python 3.x
-Pygame
+* Python 3.x
+* Pygame
 ----------------------------
 # Installation
 ----------------------------
-Install Python: Ensure Python 3.x is installed on your system.
-Install Pygame:
-bash
-Copy code
-pip install pygame
+#### Install Python: Ensure Python 3.x is installed on your system.
+#### Install Pygame:
+#### bash
+#### Copy code
+#### pip install pygame
 ----------------------------
 
 #### Please make sure you import these packages as well
