@@ -12,7 +12,6 @@ WINDOW_H = layout.BOARD_H * CELL_SIZE  + 100
 board_start_x = (WINDOW_W - layout.BOARD_W * CELL_SIZE) // 3
 board_start_y = (WINDOW_H - layout.BOARD_H * CELL_SIZE) // 2
 
-
 window = pygame.display.set_mode((WINDOW_W, WINDOW_H))
 pygame.display.set_caption("Tetris")
 font = pygame.font.SysFont('comicsans', 30)
@@ -23,7 +22,7 @@ score_y = 65
 lines_y = 100
 next_shape_y = 150
 
-button_x = WINDOW_W - 100  # Position button on the far right corner
+button_x = WINDOW_W - 100  
 button_y = WINDOW_H - 70
 button_width = 80
 button_height = 40
@@ -31,13 +30,10 @@ button_height = 40
 def draw_info(surface, score, start_time, lines):
     current_time = int(time.time() - start_time)
     pygame.draw.rect(surface, (255, 253, 232), (info_x, 0, WINDOW_W - info_x, WINDOW_H))
-    # Time
     time_label = font.render(f'Time: {current_time}', 1, (38, 70, 83))
     surface.blit(time_label, (info_x, time_y))
-    # Score
     score_label = font.render(f'Score: {score}', 1, (38, 70, 83))
     surface.blit(score_label, (info_x, score_y))
-    # Lines cleared
     lines_label = font.render(f'Lines: {lines}', 1, (38, 70, 83))
     surface.blit(lines_label, (info_x, lines_y))
 
@@ -50,7 +46,6 @@ def draw_grid(surface, grid):
                              (board_start_x + j * CELL_SIZE, board_start_y + i * CELL_SIZE, CELL_SIZE, CELL_SIZE), 0)                    
             pygame.draw.rect(surface, (249, 249, 224), 
                              (board_start_x + j * CELL_SIZE, board_start_y + i * CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)
-
 
 
 class Tetromino:
@@ -67,7 +62,6 @@ class Tetromino:
         self.rotation = (self.rotation + 1) % len(self.all_rotations)
         self.shape = self.all_rotations[self.rotation]
 
-
 def draw_tetromino(surface, tetromino):
     for i, row in enumerate(tetromino.shape):
         for j, cell in enumerate(row):
@@ -80,7 +74,6 @@ def draw_tetromino(surface, tetromino):
                      CELL_SIZE, CELL_SIZE),
                     0
                 )
-
 
 def is_collision(tetromino, game_board):
     for i, row in enumerate(tetromino.shape):
@@ -118,7 +111,6 @@ def check_lines(board):
     return lines_cleared, new_board
 
 
-
 def valid_space(tetromino, grid):
     accepted_positions = [[(j, i) for j in range(layout.BOARD_W) if grid[i][j] == 0] for i in range(layout.BOARD_H)]
     accepted_positions = [j for sub in accepted_positions for j in sub]
@@ -140,12 +132,12 @@ def convert_shape_format(tetromino):
     return positions
 
 def draw_next_shape(shape, surface):
-    offset_x = board_start_x + layout.BOARD_W * CELL_SIZE + 50  # Display next to the board
-    offset_y = board_start_y + 50  # Align vertically with the board
+    offset_x = board_start_x + layout.BOARD_W * CELL_SIZE + 50 
+    offset_y = board_start_y + 50  
 
     font = pygame.font.SysFont('comicsans', 30)
     label = font.render('Next Shape', 1, (255, 255, 255))
-    surface.blit(label, (offset_x, offset_y - 30))  # Adjust label position as needed
+    surface.blit(label, (offset_x, offset_y - 30))  
 
     for i, row in enumerate(shape.shape):
         for j, cell in enumerate(row):
@@ -158,21 +150,19 @@ def draw_next_shape(shape, surface):
 
 def spawn_new_tetromino():
     shape_index = random.randint(0, len(layout.SHAPES) - 1)
-    color = layout.COLORS[shape_index + 1]  # +1 to skip the empty space color
+    color = layout.COLORS[shape_index + 1]  
     return Tetromino(shape_index, color)
 
-# Shadow Tetromino
+
 def draw_shadow_tetromino(surface, tetromino, game_board):
-    shadow_color = (200, 200, 200)  # Light grey color for the shadow
-    # Create a shadow Tetromino that is a copy of the current one
+    shadow_color = (200, 200, 200)  
     shadow = Tetromino(tetromino.shape_index, shadow_color)
     shadow.x, shadow.y = tetromino.x, tetromino.y
     shadow.shape = tetromino.shape
 
-    # Drop shadow to the bottom
     while not is_collision(shadow, game_board):
         shadow.y += 1
-    shadow.y -= 1  # Move back up after collision
+    shadow.y -= 1  
 
     for i, row in enumerate(shadow.shape):
         for j, cell in enumerate(row):
@@ -183,21 +173,18 @@ def draw_shadow_tetromino(surface, tetromino, game_board):
                     (board_start_x + (shadow.x + j) * CELL_SIZE,
                      board_start_y + (shadow.y + i) * CELL_SIZE,
                      CELL_SIZE, CELL_SIZE), 
-                    2  # Outline width, set to 0 for filled rectangle
+                    2  
                 )
 
-    # Draw shadow Tetromino
     draw_tetromino(surface, shadow)
 
 def draw_pause_button(surface, is_paused):
-    button_color = (99, 126, 118)  # Dark gray button
+    button_color = (99, 126, 118)  
     text = "Pause" if not is_paused else "Play"
-    text_color = (255, 255, 255)  # White text
+    text_color = (255, 255, 255)  
 
-    # Draw the button
     pygame.draw.rect(surface, button_color, (button_x, button_y, button_width, button_height))
 
-    # Draw the text
     button_font = pygame.font.SysFont('comicsans', 20)
     text_surface = button_font.render(text, True, text_color)
     surface.blit(text_surface, (button_x + (button_width - text_surface.get_width()) / 2, 
@@ -229,25 +216,23 @@ def restart_menu(surface, is_game_over):
     return "quit"
 
 def create_semi_transparent_surface(width, height, alpha=128):
-    # Create a new surface with the specified width, height, and alpha transparency
     transparent_surface = pygame.Surface((width, height), pygame.SRCALPHA)
-    transparent_surface.fill((0, 0, 0, alpha))  # Fill with semi-transparent black
+    transparent_surface.fill((0, 0, 0, alpha)) 
     return transparent_surface
-
 
 def show_game_over(surface):
     game_over_label = font.render('GAME OVER', 1, (255, 0, 0))
     surface.blit(game_over_label, (board_start_x + (layout.BOARD_W * CELL_SIZE // 2) - (game_over_label.get_width() // 2), board_start_y + (layout.BOARD_H * CELL_SIZE // 2) - (game_over_label.get_height() // 2)))
     pygame.display.update()
-    pygame.time.wait(2000)  # Wait for 2 seconds before showing restart menu
+    pygame.time.wait(2000)  
 
 def check_game_over(tetromino, board):
     return is_collision(tetromino, board)
 
 def handle_game_over():
     show_game_over(window)
-    window.fill((0, 0, 0))  # Clear the screen
-    action = restart_menu(window, True)  # True for game over scenario
+    window.fill((0, 0, 0))  
+    action = restart_menu(window, True)  
     return action
     
 class HeuristicAlgorithm:
@@ -256,7 +241,7 @@ class HeuristicAlgorithm:
             "lines_cleared": 500,  # Increased reward for clearing lines
             "holes": -250,         # Increased penalty for holes
             "bumpiness": -25,      # Adjusted penalty for bumpiness
-            "height": 150,        # Significantly increased penalty for height
+            "height": 150,         # Significantly increased penalty for height
             "t_spin": 200          # Reward for T-spins, if implemented
         }
     def calculate_score(self, board, lines_cleared, is_t_spin=False):
@@ -274,7 +259,6 @@ class HeuristicAlgorithm:
             score += self.weights["t_spin"]
 
         return score
-
 
     def possible_moves(self, tetromino, board):
         moves = []
@@ -316,7 +300,6 @@ class HeuristicAlgorithm:
             simulated_board = self.simulate_move(current_tetromino, board, move)
             is_t_spin = self.detect_t_spin(current_tetromino, simulated_board)
 
-            # Introduce lookahead by considering the next tetromino
             for next_move in self.possible_moves(next_tetromino, simulated_board):
                 future_board = self.simulate_move(next_tetromino, simulated_board, next_move)
                 lines_cleared = self.calculate_lines_cleared(simulated_board, future_board)
@@ -339,22 +322,19 @@ class HeuristicAlgorithm:
             current_row = current_board[i]
             future_row = future_board[i]
 
-            # Check if the row was full in the current board and empty in the future board
             if all(cell != 0 for cell in current_row) and all(cell == 0 for cell in future_row):
                 lines_cleared += 1
 
         return lines_cleared
 
-    
     def detect_t_spin(self, tetromino, board):
         T_TETROMINO_INDEX = 2 
-        if tetromino.shape_index != T_TETROMINO_INDEX:  # Replace with the index of T-Tetromino in your SHAPES
+        if tetromino.shape_index != T_TETROMINO_INDEX:  
             return False
 
         x, y = tetromino.x, tetromino.y
         shape = tetromino.shape
 
-        # Coordinates of the 3x3 grid around the T-Tetromino's center
         surrounding_blocks = [
             (x - 1, y - 1), (x, y - 1), (x + 1, y - 1),
             (x - 1, y),                 (x + 1, y),
@@ -364,11 +344,10 @@ class HeuristicAlgorithm:
         filled_corners = 0
         for bx, by in surrounding_blocks:
             if bx < 0 or by < 0 or bx >= layout.BOARD_W or by >= layout.BOARD_H:
-                filled_corners += 1  # Count out-of-bounds as filled
+                filled_corners += 1  
             elif board[by][bx] != 0:
                 filled_corners += 1
 
-        # Check if three of the four corner blocks are filled
         return filled_corners >= 3
 
 
@@ -390,13 +369,12 @@ def main_game_loop():
     lines_cleared = 0
     fall_time = 0
     running = True
-    start_time = time.time()  # Start time for the game
+    start_time = time.time()  
     score = 0
     score_per_tetromino = 10 
     is_paused = False
     pause_start_time = None
     automatic_play = False 
-    
 
     while running:
         fall_time += clock.get_rawtime()
@@ -404,38 +382,36 @@ def main_game_loop():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return  # Exit the loop and the function to quit
+                return 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 if button_x <= mouse_x <= button_x + button_width and button_y <= mouse_y <= button_y + button_height:
                     if not is_paused:
-                        # Entering pause state
                         is_paused = True
-                        pause_start_time = time.time()  # Record the start time of the pause
-                        window.blit(semi_transparent_overlay, (0, 0))  # Apply semi-transparent overlay
-                        action = restart_menu(window, False)  # False for pause scenario
+                        pause_start_time = time.time()  
+                        window.blit(semi_transparent_overlay, (0, 0))
+                        action = restart_menu(window, False)  
                         if action == "restart":
                             return "restart"
                         elif action == "play":
                             is_paused = False
                             pause_duration = time.time() - pause_start_time
-                            start_time += pause_duration  # Adjust start_time by pause duration
+                            start_time += pause_duration  
                             pause_start_time = None
                         elif action == "quit":
                             return "quit"
                     else:
                         if not restart_menu_active:
                             action = restart_menu(window, False)
-                            restart_menu_active = True  # Set to True as the menu is now active
-
+                            restart_menu_active = True  
                             if action == "restart":
-                                return "restart"  # Exit the function to restart the game
+                                return "restart"  
                             elif action == "play":
                                 is_paused = False
                                 pause_duration = time.time() - pause_start_time
-                                start_time += pause_duration  # Adjust start_time by pause duration
-                                pause_start_time = None  # Reset pause_start_time
-                                restart_menu_active = False  # Reset the menu state as it's no longer active
+                                start_time += pause_duration 
+                                pause_start_time = None
+                                restart_menu_active = False  
                             elif action == "quit":
                                 return "quit"
 
@@ -479,38 +455,29 @@ def main_game_loop():
                     if is_collision(next_tetromino, game_board):
                         show_game_over(window)
                         return handle_game_over() 
-                   
-
-         # Automatic play logic
+                
         if automatic_play:
             best_move = heuristic.find_best_move(current_tetromino, next_tetromino, game_board)
             if best_move:
-                # Apply the best move
                 current_tetromino.rotation = best_move[0]
                 current_tetromino.x = best_move[1]
 
-                # Drop the tetromino immediately to the bottom
                 while not is_collision(current_tetromino, game_board):
                     current_tetromino.y += 1
-                current_tetromino.y -= 1  # Adjust position after collision
-
+                current_tetromino.y -= 1  
                 lock_tetromino(current_tetromino, game_board)
-                score += score_per_tetromino  # Increase score for each locked tetromino by algorithm
-
-                # Check and handle lines cleared
+                score += score_per_tetromino  
                 lines_cleared_this_turn, game_board = check_lines(game_board)
                 lines_cleared += lines_cleared_this_turn
-
-                # Spawn a new tetromino and check for game over
                 current_tetromino = next_tetromino
                 next_tetromino = spawn_new_tetromino()
                 if is_collision(next_tetromino, game_board):
                     result = handle_game_over()
                     if result == "quit":
-                        return "quit"  # Exit the game
+                        return "quit" 
                     elif result == "restart":
                         return 
-
+                    
 
         window.fill((253, 253, 150))
         draw_grid(window, game_board)
@@ -527,10 +494,9 @@ def main_game_loop():
 
         clock.tick(60)
 
-    # Ask the player if they want to restart
     restart = restart_menu(window, False)
     if restart == "restart":
-        return  # Exit the function to restart the game
+        return  
     elif restart == "quit":
         return  
 
